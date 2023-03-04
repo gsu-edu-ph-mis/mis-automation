@@ -6,8 +6,9 @@
  *  node sias-term-grades USERNAME PASSWORD 2020-1-0649 22-1
  * 
  */
-const ExcelJS = require('exceljs')
 const fs = require('fs')
+const path = require('path')
+const ExcelJS = require('exceljs')
 const { chromium } = require('playwright')  // Or 'chromium' or 'webkit'.
 const toWorkSheet = async (file, sheetName = 'Sheet1') => {
     const workbook = new ExcelJS.Workbook();
@@ -28,7 +29,8 @@ module.exports = async (args, mainWindow) => {
         const URL = args[6]
         const DIR = args[7]
 
-        const MASTER_LIST = `${DIR}/enrollment-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`
+        const MASTER_LIST = path.join(DIR, `enrollment-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`)
+
         if (fs.existsSync(MASTER_LIST)) {
             console.log(`Load master list from file ${MASTER_LIST}`)
             if (mainWindow) mainWindow.webContents.send('update-counter', `Load master list from file ${MASTER_LIST}`)

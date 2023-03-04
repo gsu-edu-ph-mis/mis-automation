@@ -184,10 +184,11 @@ module.exports = async (args, mainWindow) => {
         }
 
         //TODO: 1-4th year
-        await workbookOut.xlsx.writeFile(`${TARGET_DIR}/promo-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`);
-        console.log(`Done. See ${TARGET_DIR}/promo-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`)
+        const PROMO_LIST_FILE = path.join(DIR, `promo-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`)
+        await workbookOut.xlsx.writeFile(PROMO_LIST_FILE);
+        console.log(`Done. See ${PROMO_LIST_FILE}`)
         console.log(`Ended ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
-        if(mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Done. See ${TARGET_DIR}/promo-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`)
+        if(mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Done. See ${PROMO_LIST_FILE}`)
         if(mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Ended ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
     } catch (error) {
         console.error(error)
