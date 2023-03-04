@@ -1,0 +1,45 @@
+/* Vue */
+[v-cloak] {
+    position: relative;
+}
+[v-cloak] > * {
+    visibility: hidden;
+}
+[v-cloak]:before {
+    content:"";
+    background: url("../images/ajax-loader.gif") no-repeat top center;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+div[data-pending="true"]:before {
+    background: #fff;
+    opacity: 0.9;
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1001;
+}
+div[data-pending="true"]:after {
+    content: "Processing... Please wait...";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    z-index: 1002;
+    text-align: center;
+    color: #222;
+    font-size: 18px;
+    font-style: italic;
+} 
+
+.tab-content {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    margin-top: -1px;
+}
