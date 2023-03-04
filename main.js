@@ -13,6 +13,7 @@ const createWindow = () => {
     const mainWindow = new BrowserWindow({
         width: 1024,
         height: 800,
+        minWidth:500,
         icon: `${__dirname}/images/icon.png`,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js')
@@ -48,7 +49,7 @@ const createWindow = () => {
     mainWindow.loadFile('index.html')
 
     // Open the DevTools.
-    mainWindow.webContents.openDevTools()
+    // mainWindow.webContents.openDevTools()
 
     return mainWindow
 }
