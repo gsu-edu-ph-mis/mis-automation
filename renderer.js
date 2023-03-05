@@ -72,8 +72,12 @@ let vApp = new Vue({
                 me.year
             ]
 
-            await window.electronAPI.sendToMain(params)
+            let result = await window.electronAPI.sendToMain(params)
 
+            if (result != 'Ok') {
+                alert('Error. Something went wrong.')
+            }
+            console.log(result)
             await new Promise(resolve => setTimeout(resolve, 100)) // Rate limit 
             me.pending = false
             document.getElementById("bottom").scrollIntoView({

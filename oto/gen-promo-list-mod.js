@@ -192,5 +192,6 @@ module.exports = async (args, mainWindow) => {
         if(mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Ended ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
     } catch (error) {
         console.error(error)
+        throw error
     }
 }

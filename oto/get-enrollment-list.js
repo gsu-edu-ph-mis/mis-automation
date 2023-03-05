@@ -33,13 +33,13 @@ module.exports = async (args, mainWindow) => {
 
         if (fs.existsSync(MASTER_LIST)) {
             console.log(`Load master list from file ${MASTER_LIST}`)
-            if (mainWindow) mainWindow.webContents.send('update-counter', `Load master list from file ${MASTER_LIST}`)
+            if (mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Load master list from file ${MASTER_LIST}`)
 
             const workSheet = await toWorkSheet(MASTER_LIST)
             return workSheet
         }
         console.log(`Download master list from network`)
-        if (mainWindow) mainWindow.webContents.send('update-counter', `Download master list from network`)
+        if (mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Download master list from network`)
 
         browser = await chromium.launch({
             // headless: false,
@@ -87,7 +87,7 @@ module.exports = async (args, mainWindow) => {
         await browser.close();
 
         console.log(`Master list downloaded to file ${MASTER_LIST}`)
-        if (mainWindow) mainWindow.webContents.send('update-counter', `Master list downloaded to file ${MASTER_LIST}`)
+        if (mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Master list downloaded to file ${MASTER_LIST}`)
 
         const workSheet = await toWorkSheet(MASTER_LIST)
         return workSheet

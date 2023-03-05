@@ -13,7 +13,7 @@ const createWindow = () => {
     const mainWindow = new BrowserWindow({
         width: 1024,
         height: 800,
-        minWidth:500,
+        minWidth: 500,
         icon: `${__dirname}/images/icon.png`,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js')
@@ -60,9 +60,12 @@ const createWindow = () => {
 app.whenReady().then(() => {
 
     ipcMain.handle('mis:onDataFromRenderer', async (_event, params) => {
-        console.log('Data from renderer', params)
-        await oto(params, rootBrowserWindow)
-        return 'YES'
+        try {
+            await oto(params, rootBrowserWindow)
+            return 'Ok'
+        } catch (err) {
+            return err
+        }
     })
 
     rootBrowserWindow = createWindow()
