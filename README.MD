@@ -4,7 +4,7 @@ Its automatic!!
 
 ![automatic](images/otomatic.gif)
 
-[Sandara Park](images/otomatic.mp4)
+[Sandara Park is a fan of MIS automation](https://raw.githubusercontent.com/gsu-edu-ph-mis/mis-automation/master/images/otomatic.mp4)
 
 ## Develop
 
