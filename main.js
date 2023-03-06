@@ -1,13 +1,30 @@
-// main.js
+/**
+ * Main.js
+ */
 
-// Modules to control application life and create native browser window
-const { app, BrowserWindow, Menu, ipcMain } = require('electron')
+//// Core modules
+const fs = require('fs')
 const path = require('path')
-const generatePromotionalList = require('./oto/gen-promo-list-mod')
-const logger = require('./oto/logger')
-const isMac = process.platform === 'darwin'
 
+//// External modules
+const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron') // Modules to control application life and create native browser window
+
+//// Modules
+const generatePromotionalList = require('./oto/get-promo-list')
+const getEnrollmentList = require('./oto/get-enrollment-list')
+const getGrades = require('./oto/get-grades')
+
+
+//// Set globals
+const IS_MAC = process.platform === 'darwin'
+const APP_DIR = path.resolve(__dirname).replace(/\\/g, '/'); // Turn back slash to slash for cross-platform compat
+global.APP_DIR = APP_DIR
 let rootBrowserWindow = null
+
+global.TARGET_DIR = path.join(APP_DIR, `downloads`)
+if (!fs.existsSync(TARGET_DIR)) {
+    fs.mkdirSync(TARGET_DIR, { recursive: true })
+}
 
 const createWindow = () => {
     // Create the browser window.
@@ -26,7 +43,13 @@ const createWindow = () => {
         {
             label: '&File',
             submenu: [
-                isMac ? { role: 'close' } : { role: 'quit' }
+                {
+                    label: 'Show Downloads',
+                    click: async () => {
+                        shell.openPath(TARGET_DIR)
+                    }
+                },
+                IS_MAC ? { role: 'close' } : { role: 'quit' },
             ]
         },
         {
@@ -35,7 +58,6 @@ const createWindow = () => {
                 {
                     label: 'About',
                     click: async () => {
-                        const { shell } = require('electron')
                         await shell.openExternal('https://mis.gsu.edu.ph')
                     }
                 }
@@ -61,6 +83,7 @@ const createWindow = () => {
 app.whenReady().then(() => {
 
 
+
     ipcMain.handle('mis:onDataFromRenderer', async (_event, action, params) => {
         const logToRenderer = (logGroup) => {
             return (log) => {
@@ -72,7 +95,13 @@ app.whenReady().then(() => {
         }
         try {
             if (action === 'promotional-list') {
-                await generatePromotionalList(params, logToRenderer(`group1`))
+                await generatePromotionalList([...params, TARGET_DIR], logToRenderer(`group1`))
+            } else if (action === 'enrollment-list') {
+                await getEnrollmentList([...params, TARGET_DIR], logToRenderer(`group2`))
+            } else if (action === 'term-grades') {
+                await getGrades([...params, TARGET_DIR], logToRenderer(`group3`))
+            } else if (action === 'show-file') {
+                shell.showItemInFolder(params)
             }
             return 'Ok'
         } catch (err) {
@@ -93,7 +122,7 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
-    if (!isMac) app.quit()
+    if (!IS_MAC) app.quit()
 })
 
 // In this file you can include the rest of your app's specific main process

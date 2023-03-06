@@ -1,11 +1,3 @@
-/**
- * Usage
- * 
- *  node sias-term-grades [username] [admin password]
- * 
- *  node sias-term-grades USERNAME PASSWORD 2020-1-0649 22-1
- * 
- */
 const fs = require('fs')
 const path = require('path')
 const ExcelJS = require('exceljs')
@@ -32,12 +24,12 @@ module.exports = async (args, logToRenderer) => {
         const MASTER_LIST = path.join(DIR, `enrollment-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`)
 
         if (fs.existsSync(MASTER_LIST)) {
-            logToRenderer(`Load master list from file ${MASTER_LIST}`)
+            logToRenderer(`Enrollment list found in ${MASTER_LIST}`)
 
             const workSheet = await toWorkSheet(MASTER_LIST)
             return workSheet
         }
-        logToRenderer(`Download master list from network`)
+        logToRenderer(`Downloading enrollment list from network...`)
 
         browser = await chromium.launch({
             // headless: false,
@@ -84,7 +76,7 @@ module.exports = async (args, logToRenderer) => {
         await download.saveAs(MASTER_LIST)
         await browser.close();
 
-        logToRenderer(`Master list downloaded to file ${MASTER_LIST}`)
+        logToRenderer(`Enrollment list downloaded to ${MASTER_LIST}`)
 
         const workSheet = await toWorkSheet(MASTER_LIST)
         return workSheet

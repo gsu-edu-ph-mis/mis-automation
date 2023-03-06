@@ -50,9 +50,9 @@ let vApp = new Vue({
             'BITAT',
             'BITET',
         ],
-        url: 'http://203.177.71.162/sias/',
-        username: 'JGERADA',
-        password: '138915',
+        url: '',
+        username: '',
+        password: '',
         college: 'CAGS',
         semester: '22-1',
         course: 'BSF',
@@ -109,7 +109,8 @@ let vApp = new Vue({
                 me.college,
                 me.semester,
                 me.course,
-                me.year
+                me.year,
+                me.url,
             ]
 
             let result = await window.electronAPI.sendToMain('enrollment-list', params)
@@ -130,8 +131,9 @@ let vApp = new Vue({
             let params = [
                 me.username,
                 me.password,
+                me.studentId,
                 me.semester,
-                me.studentId
+                me.url,
             ]
 
             let result = await window.electronAPI.sendToMain('term-grades', params)
@@ -145,6 +147,11 @@ let vApp = new Vue({
             document.getElementById("bottom").scrollIntoView({
                 behavior: 'smooth'
             });
+        },
+        showFile: async (path) => {
+            let result = await window.electronAPI.sendToMain('show-file', path)
+
+           
         }
     }
 });
@@ -153,5 +160,9 @@ let vApp = new Vue({
 window.electronAPI.onDataFromMain((_event, value, group) => {
     if (group === 'group1') {
         vApp.group1.logs.push(value)
+    } else if (group === 'group2') {
+        vApp.group2.logs.push(value)
+    } else if (group === 'group3') {
+        vApp.group3.logs.push(value)
     }
 })

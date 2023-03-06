@@ -1,18 +1,9 @@
-/**
- * Usage
- * 
- *  node sias-term-grades [username] [admin password]
- * 
- *  node sias-term-grades USERNAME PASSWORD 2020-1-0649 22-1
- * 
- */
-
 const fs = require('fs')
 const path = require('path')
 const { chromium } = require('playwright')  // Or 'chromium' or 'webkit'.
 
 // Return filePath or throw on error
-module.exports = async (args) => {
+module.exports = async (args, logToRenderer) => {
     let browser = null
     try {
         const USERNAME = args[0]
@@ -21,14 +12,13 @@ module.exports = async (args) => {
         const SEM = args[3]
         const URL = args[4]
         const DIR = args[5]
-        const CONSOLE = args[6]
 
         const filePath = path.join(DIR, `term-grades-${ID}-${SEM}.xlsx`)
         if (fs.existsSync(filePath)) {
-            if (CONSOLE) console.log(`Load grades from file ${filePath}`)
+            logToRenderer(`Grades file found in ${filePath}`)
             return filePath
         }
-        if (CONSOLE) console.log(`Download grades from network`)
+        logToRenderer(`Downloading grades from network...`)
 
         browser = await chromium.launch({
             // headless: false,
@@ -48,23 +38,23 @@ module.exports = async (args) => {
         await page.locator("text='Registrar'").click()
         await page.locator("text='Grades'").click()
         await page.locator("text='Individual Term Grades (Match Curriculum)'").click()
-        await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
+        // await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
         
         await page.locator(`:text("Student") + div`).locator('> input').fill(ID)
         await page.locator(`:text("Period") + div`).locator('> input').fill(SEM)
         await page.locator(`:text("Level") + div`).click()
         await page.locator("text='College'").click()
-        await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
+        await new Promise(resolve => setTimeout(resolve, 100)) // Rate limit 
 
         await page.locator("text='Refresh'").click()
 
         const downloadPromise = page.waitForEvent('download')
-        await new Promise(resolve => setTimeout(resolve, 2000)) // Rate limit 
+        await new Promise(resolve => setTimeout(resolve, 1000)) // Rate limit 
         await page.locator("text='XLS'").click()
         const download = await downloadPromise;
         await download.saveAs(filePath)
         await browser.close();
-        if (CONSOLE) console.log(`Grades downloaded and saved to file ${filePath}`)
+        logToRenderer(`Grades downloaded to ${filePath}`)
         return filePath
 
     } catch (error) {
