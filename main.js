@@ -3,7 +3,8 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, Menu, ipcMain } = require('electron')
 const path = require('path')
-const oto = require('./oto/gen-promo-list-mod')
+const generatePromotionalList = require('./oto/gen-promo-list-mod')
+const logger = require('./oto/logger')
 const isMac = process.platform === 'darwin'
 
 let rootBrowserWindow = null
@@ -12,7 +13,7 @@ const createWindow = () => {
     // Create the browser window.
     const mainWindow = new BrowserWindow({
         width: 1024,
-        height: 800,
+        height: 700,
         minWidth: 500,
         icon: `${__dirname}/images/icon.png`,
         webPreferences: {
@@ -49,7 +50,7 @@ const createWindow = () => {
     mainWindow.loadFile('index.html')
 
     // Open the DevTools.
-    // mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools()
 
     return mainWindow
 }
@@ -59,9 +60,20 @@ const createWindow = () => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
 
-    ipcMain.handle('mis:onDataFromRenderer', async (_event, params) => {
+
+    ipcMain.handle('mis:onDataFromRenderer', async (_event, action, params) => {
+        const logToRenderer = (logGroup) => {
+            return (log) => {
+                // Log here
+                console.log(log)
+                // Log to renderer
+                if (rootBrowserWindow) rootBrowserWindow.webContents.send('mis:onDataFromMain', log, logGroup)
+            }
+        }
         try {
-            await oto(params, rootBrowserWindow)
+            if (action === 'promotional-list') {
+                await generatePromotionalList(params, logToRenderer(`group1`))
+            }
             return 'Ok'
         } catch (err) {
             return err

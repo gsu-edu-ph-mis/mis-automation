@@ -17,7 +17,7 @@
         <div class="row">
             <div class="col-md-12">
                 <div id="vApp">
-                    <div class="mb-4 position-relative" v-bind:data-pending="pending">
+                    <div class="mb-4 position-relative">
 
                         <ul class="nav nav-tabs">
                             <li v-for="tab in tabs" class="nav-item">
@@ -25,9 +25,17 @@
                                     aria-current="page" href="#">${tab.text}</a>
                             </li>
                         </ul>
-                        <div class="tab-content p-3 mb-4">
+                        <div class="tab-content">
+                            <!--  -->
                             <template v-if="page==1">
-                                <form action="/" method="post" v-on:submit.prevent="onSubmit">
+                                <form class="p-3" v-bind:data-pending="pending" action="/" method="post"
+                                    v-on:submit.prevent="onFormPromotionalListSubmit">
+                                    <div class="form-group row">
+                                        <label for="url" class="col-sm-2 col-form-label">URL</label>
+                                        <div class="col-sm-10">
+                                            <input v-model="url" type="url" class="form-control" id="url">
+                                        </div>
+                                    </div>
                                     <div class="form-group row">
                                         <label for="username" class="col-sm-2 col-form-label">Username</label>
                                         <div class="col-sm-10">
@@ -65,11 +73,7 @@
                                     <div class="form-group row">
                                         <label for="course" class="col-sm-2 col-form-label">Course</label>
                                         <div class="col-sm-10">
-                                            <input v-model="course" type="course" class="form-control" id="course">
-                                            <!-- <select v-model="course" class="form-control" name="course" id="course">
-                                            <option selected></option>
-                                            <option v-for="o in courses" v-bind:value="o">${o}</option>
-                                        </select> -->
+                                            <input v-model="course" type="text" class="form-control" id="course">
                                         </div>
                                     </div>
                                     <div class="form-group row">
@@ -91,26 +95,171 @@
                                         </div>
                                     </div>
                                 </form>
+                                <div class="p-3">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="h6">Status</h6>
+                                        <button v-bind:disabled="pending" v-on:click="group1.logs=[]" type="button" class="btn btn-sm btn-light">Clear</button>
+                                    </div>
+                                    <div class="border p-3">
+                                        <ul>
+                                            <li v-for="log in group1.logs">${log}</li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </template>
+                            <!-- 2 -->
                             <template v-if="page==2">
-                                <div class="alert alert-info">Not yet implemented.</div>
+                                <form class="p-3" v-bind:data-pending="pending" action="/" method="post"
+                                    v-on:submit.prevent="onFormEnrollmentListSubmit">
+                                    <div class="form-group row">
+                                        <label for="url" class="col-sm-2 col-form-label">URL</label>
+                                        <div class="col-sm-10">
+                                            <input v-model="url" type="url" class="form-control" id="url">
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="username" class="col-sm-2 col-form-label">Username</label>
+                                        <div class="col-sm-10">
+                                            <input v-model="username" type="username" class="form-control"
+                                                id="username">
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="password" class="col-sm-2 col-form-label">Password</label>
+                                        <div class="col-sm-10">
+                                            <input v-model="password" type="password" class="form-control"
+                                                id="password">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row">
+                                        <label for="college" class="col-sm-2 col-form-label">College</label>
+                                        <div class="col-sm-10">
+                                            <select v-model="college" class="form-control" id="college">
+                                                <option selected></option>
+                                                <option v-for="o in colleges" v-bind:value="o">${o}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row">
+                                        <label for="semester" class="col-sm-2 col-form-label">Semester</label>
+                                        <div class="col-sm-10">
+                                            <select v-model="semester" class="form-control" id="semester">
+                                                <option selected></option>
+                                                <option v-for="o in semesters" v-bind:value="o">${o}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row">
+                                        <label for="course" class="col-sm-2 col-form-label">Course</label>
+                                        <div class="col-sm-10">
+                                            <input v-model="course" type="text" class="form-control" id="course">
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="year" class="col-sm-2 col-form-label">Year</label>
+                                        <div class="col-sm-10">
+                                            <select v-model="year" class="form-control" id="year">
+                                                <option selected></option>
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row">
+                                        <div class="col-sm-2 col-form-label"></div>
+                                        <div class="col-sm-10 text-right">
+                                            <button type="submit" class="btn btn-primary">Download</button>
+                                        </div>
+                                    </div>
+                                </form>
+                                <div class="p-3">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="h6">Status</h6>
+                                        <button v-bind:disabled="pending" v-on:click="group2.logs=[]" type="button" class="btn btn-sm btn-light">Clear</button>
+                                    </div>
+                                    <div class="border p-3">
+                                        <ul>
+                                            <li v-for="log in group2.logs">${log}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </template>
+                            <!-- 3 -->
+                            <template v-if="page==3">
+                                <form class="p-3" v-bind:data-pending="pending" action="/" method="post"
+                                    v-on:submit.prevent="onFormTermGradesSubmit">
+                                    <div class="form-group row">
+                                        <label for="url" class="col-sm-2 col-form-label">URL</label>
+                                        <div class="col-sm-10">
+                                            <input v-model="url" type="url" class="form-control" id="url">
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="username" class="col-sm-2 col-form-label">Username</label>
+                                        <div class="col-sm-10">
+                                            <input v-model="username" type="username" class="form-control"
+                                                id="username">
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="password" class="col-sm-2 col-form-label">Password</label>
+                                        <div class="col-sm-10">
+                                            <input v-model="password" type="password" class="form-control"
+                                                id="password">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row">
+                                        <label for="semester" class="col-sm-2 col-form-label">Semester</label>
+                                        <div class="col-sm-10">
+                                            <select v-model="semester" class="form-control" id="semester">
+                                                <option selected></option>
+                                                <option v-for="o in semesters" v-bind:value="o">${o}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row">
+                                        <label for="studentId" class="col-sm-2 col-form-label">Student ID</label>
+                                        <div class="col-sm-10">
+                                            <input v-model="studentId" type="text" class="form-control" id="course">
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row">
+                                        <div class="col-sm-2 col-form-label"></div>
+                                        <div class="col-sm-10 text-right">
+                                            <button type="submit" class="btn btn-primary">Download</button>
+                                        </div>
+                                    </div>
+                                </form>
+                                <div class="p-3">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="h6">Status</h6>
+                                        <button v-bind:disabled="pending" v-on:click="group3.logs=[]" type="button" class="btn btn-sm btn-light">Clear</button>
+                                    </div>
+                                    <div class="border p-3">
+                                        <ul>
+                                            <li v-for="log in group3.logs">${log}</li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </template>
                         </div>
                     </div>
-
                     <!--  -->
-                    <h6 class="h6">Status</h6>
-                    <div class="border p-3">
-                        <ul>
-                            <li v-for="log in logs">${log}</li>
-                        </ul>
-                    </div>
-                    <div id="bottom" class="text-center font-italic pt-5">MIS Automation - v1.0.0</div>
                 </div>
             </div>
         </div>
     </div>
-
+    <div id="bottom"></div>
 
     <script src="./vue.min.js"></script>
     <script src="./renderer.js"></script>

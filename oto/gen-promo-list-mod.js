@@ -20,7 +20,7 @@ const toWorkSheet = async (file, sheetName = 'Sheet1') => {
 }
 global.DIR = path.resolve(__dirname).replace(/\\/g, '/'); // Turn back slash to slash for cross-platform compat
 
-module.exports = async (args, mainWindow) => {
+module.exports = async (args, logToRenderer) => {
     try {
         const USERNAME = args[0]
         const PASSWORD = args[1]
@@ -28,10 +28,9 @@ module.exports = async (args, mainWindow) => {
         const SEM = args[3]
         const COURSE = args[4]
         const YEAR = args[5]
-
+        const URL = args[6]
 
         const TARGET_DIR = path.join(DIR, `promotional-lists`)
-        const URL = `http://203.177.71.162/sias/`
 
         if (!fs.existsSync(TARGET_DIR)) {
             fs.mkdirSync(TARGET_DIR, { recursive: true })
@@ -43,11 +42,10 @@ module.exports = async (args, mainWindow) => {
             minute: '2-digit',
             second: 'numeric',
         }
-        console.log(`Started ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
-        if(mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Started ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
-        
+        logToRenderer(`Started ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
+
         // LOAD MASTERLIST AND DOWNLOAD GRADES PER SEM
-        const worksheet = await getEnrollmentList([USERNAME, PASSWORD, COLLEGE, SEM, COURSE, YEAR, URL, TARGET_DIR], mainWindow)
+        const worksheet = await getEnrollmentList([USERNAME, PASSWORD, COLLEGE, SEM, COURSE, YEAR, URL, TARGET_DIR], logToRenderer)
         let rowCount = 0
         let gradeFiles = []
         let gradeStudents = []
@@ -84,8 +82,7 @@ module.exports = async (args, mainWindow) => {
                 try {
                     let filePath = await getGrades([USERNAME, PASSWORD, ID, SEM, URL, TARGET_DIR, false])
 
-                    console.log(`${rowCount} of ${worksheet.rowCount - START_ROW + 1} to ${filePath}`)
-                    if(mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `${rowCount} of ${worksheet.rowCount - START_ROW + 1} to ${filePath}`)
+                    logToRenderer(`${rowCount} of ${worksheet.rowCount - START_ROW + 1} to ${filePath}`)
 
                     gradeFiles.push(filePath)
                     gradeStudents.push({
@@ -186,10 +183,9 @@ module.exports = async (args, mainWindow) => {
         //TODO: 1-4th year
         const PROMO_LIST_FILE = path.join(TARGET_DIR, `promo-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`)
         await workbookOut.xlsx.writeFile(PROMO_LIST_FILE);
-        console.log(`Done. See ${PROMO_LIST_FILE}`)
-        console.log(`Ended ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
-        if(mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Done. See ${PROMO_LIST_FILE}`)
-        if(mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Ended ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
+
+        logToRenderer(`Done. See ${PROMO_LIST_FILE}`)
+        logToRenderer(`Ended ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
     } catch (error) {
         console.error(error)
         throw error

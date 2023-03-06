@@ -17,7 +17,7 @@ const toWorkSheet = async (file, sheetName = 'Sheet1') => {
 }
 
 // Return ExcelJS worksheet or throw an error
-module.exports = async (args, mainWindow) => {
+module.exports = async (args, logToRenderer) => {
     let browser = null
     try {
         const USERNAME = args[0]
@@ -32,14 +32,12 @@ module.exports = async (args, mainWindow) => {
         const MASTER_LIST = path.join(DIR, `enrollment-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`)
 
         if (fs.existsSync(MASTER_LIST)) {
-            console.log(`Load master list from file ${MASTER_LIST}`)
-            if (mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Load master list from file ${MASTER_LIST}`)
+            logToRenderer(`Load master list from file ${MASTER_LIST}`)
 
             const workSheet = await toWorkSheet(MASTER_LIST)
             return workSheet
         }
-        console.log(`Download master list from network`)
-        if (mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Download master list from network`)
+        logToRenderer(`Download master list from network`)
 
         browser = await chromium.launch({
             // headless: false,
@@ -86,8 +84,7 @@ module.exports = async (args, mainWindow) => {
         await download.saveAs(MASTER_LIST)
         await browser.close();
 
-        console.log(`Master list downloaded to file ${MASTER_LIST}`)
-        if (mainWindow) mainWindow.webContents.send('mis:onDataFromMain', `Master list downloaded to file ${MASTER_LIST}`)
+        logToRenderer(`Master list downloaded to file ${MASTER_LIST}`)
 
         const workSheet = await toWorkSheet(MASTER_LIST)
         return workSheet

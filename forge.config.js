@@ -1,7 +1,5 @@
 module.exports = {
-  packagerConfig: {
-    icon: '/images/icon' // no file extension required
-  },
+  packagerConfig: {},
   rebuildConfig: {},
   makers: [
     {
