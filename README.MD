@@ -15,6 +15,13 @@ Automation software. A GUI app, automates the generation of promotional list, en
 
 Sample screenshots
 
+## Installation
+
+### Windows:
+
+Download and extract [zip file](https://github.com/gsu-edu-ph-mis/mis-automation/releases/download/1.0.0/mis-automation-win32-x64.zip) and run `mis-automation.exe`
+
+
 ## Development
 
 ### Prerequisites
