@@ -10,7 +10,7 @@ Automation software. A GUI app, automates the generation of promotional list, en
 
 ***
 ## Screenshots
-![automatic](images/screenshot.jpg)
+![automatic](images/screenshot.png)
 Sample screenshot
 
 ## Development
