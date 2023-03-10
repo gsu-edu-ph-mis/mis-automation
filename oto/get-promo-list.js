@@ -1,12 +1,21 @@
+/**
+ * Main.js
+ */
+
+//// Core modules
+const fs = require('fs')
 const path = require('path')
+
+//// External modules
 const ExcelJS = require('exceljs')
+
+//// Modules
 const getGrades = require('./get-grades')
 const getEnrollmentList = require('./get-enrollment-list')
-const toWorkSheet = async (file, sheetName = 'Sheet1') => {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(file)
-    return workbook.getWorksheet(sheetName)
-}
+const downloadEnrollmentList = require('./download-enrollment-list')
+const toWorkSheet = require('./to-worksheet')
+const copyWorkSheet = require('./copy-worksheet')
+
 
 module.exports = async (args, logToRenderer) => {
     try {
@@ -19,8 +28,6 @@ module.exports = async (args, logToRenderer) => {
         const URL = args[6]
         const TARGET_DIR = args[7]
 
-        const TEMPLATE_FILE = path.join(APP_DIR, `oto`, `template.xlsx`)
-
         const timeFmt = {
             timeZone: 'Asia/Manila',
             hour: 'numeric',
@@ -30,24 +37,28 @@ module.exports = async (args, logToRenderer) => {
         logToRenderer(`Started ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
 
         // LOAD MASTERLIST AND DOWNLOAD GRADES PER SEM
-        const worksheet = await getEnrollmentList([USERNAME, PASSWORD, COLLEGE, SEM, COURSE, YEAR, URL, TARGET_DIR], logToRenderer)
+        const ENROLLMENT_LIST = path.join(TMP_DIR, `_el-${COLLEGE}-${SEM}.xlsx`)
+        if (!fs.existsSync(ENROLLMENT_LIST)) {
+            logToRenderer(`Downloading enrollment list from network...`)
+            await downloadEnrollmentList(URL, USERNAME, PASSWORD, ENROLLMENT_LIST, COLLEGE, SEM, logToRenderer)
+        }
+        const workSheet = await toWorkSheet(ENROLLMENT_LIST, 'Sheet1') // Convert path to xlsx into exceljs worksheet
+
+        // Group rows into courses
+        const START_ROW = 8 // Start of row data
         let rowCount = 0
-        let gradeFiles = []
-        let gradeStudents = []
-        // Loop thru each student
-        const START_ROW = 8
-        for (let rowNumber = 1; rowNumber <= worksheet.rowCount; rowNumber++) {
-            const row = worksheet.getRow(rowNumber)
+        let courses = {}
+        for (let rowNumber = 1; rowNumber <= workSheet.rowCount; rowNumber++) {
+            const row = workSheet.getRow(rowNumber)
             if (rowNumber >= START_ROW) {
-                rowCount++
-                let ROW = (new String(row.getCell(1).text)).trim()
-                let ID = (new String(row.getCell(2).text)).trim()
+                ++rowCount
+                let NUMBER = (new String(row.getCell(1).text)).trim()
+                let CODE = (new String(row.getCell(2).text)).trim()
                 let NAME = (new String(row.getCell(3).text)).trim()
                 let GENDER = (new String(row.getCell(4).text)).trim()
                 let COURSE = (new String(row.getCell(5).text)).trim()
                 let YEAR = (new String(row.getCell(6).text)).trim()
-                let UNIT = (new String(row.getCell(7).text)).trim()
-                let SECTION = (new String(row.getCell(8).text)).trim()
+                // let UNITS = (new String(row.getCell(7).text)).trim()
                 let ADDRESS = (new String(row.getCell(11).text)).trim()
 
                 let lastName = ''
@@ -55,123 +66,207 @@ module.exports = async (args, logToRenderer) => {
                 let middleName = ''
 
                 try {
-                    let names = NAME.split(',')
-                    lastName = names[0]
-                    firstName = names[1].substr(0, names[1].length - 2)
-                    middleName = names[1].slice(-2)
+
+                    let names = NAME
+                    names = names.replace(',,', ',') // Remove double commas
+                    names = names.split(',')
+                    if (names[0]) {
+                        lastName = names[0]
+                    }
+                    if (names[1]) {
+                        firstName = names[1]
+                        if (/( [A-Za-z]\.)$/.test(firstName)) { // has middle initial: G. but not Jr.
+                            firstName = names[1].slice(0, names[1].length - 2)
+                            middleName = names[1].slice(-2)
+                        }
+                    }
+
+                    lastName = new String(lastName).trim()
+                    firstName = new String(firstName).trim()
+                    middleName = new String(middleName).trim()
                 } catch (err) {
-                    console.error(`Error on row ${rowCount} could not split the name ${NAME} into last, first, and middle name.`)
+                    console.error(rowCount, err)
+                    console.error(`Error on row ${rowCount} - ${NAME}`)
                     lastName = NAME
                 }
 
-                try {
-                    let dontLog = ()=>{}
-                    let filePath = await getGrades([USERNAME, PASSWORD, ID, SEM, URL, TARGET_DIR], dontLog)
+                if (!courses[COURSE]) {
+                    courses[COURSE] = {
+                        '1': [],
+                        '2': [],
+                        '3': [],
+                        '4': []
+                    }
+                }
 
-                    logToRenderer(`${rowCount} of ${worksheet.rowCount - START_ROW + 1} to ${filePath}`)
+                courses[COURSE][YEAR].push({
+                    number: NUMBER,
+                    code: CODE,
+                    lastName: lastName,
+                    firstName: firstName,
+                    middleName: middleName,
+                    gender: GENDER,
+                    course: COURSE,
+                    year: YEAR,
+                    address: ADDRESS,
+                    subjects: [],
+                })
+            }
+        }
 
-                    gradeFiles.push(filePath)
-                    gradeStudents.push({
-                        rowNumber: ROW,
-                        id: ID,
-                        lastName: lastName,
-                        firstName: firstName,
-                        middleName: middleName,
-                        gender: GENDER,
-                    })
-                } catch (err) {
-                    gradeFiles.push(``)
-                    gradeStudents.push(null)
-                    // console.log(`${rowCount} FAILED ${filePath}`)
-                    console.error(err)
+        const stringYear = (year) => {
+            if (year == 1) {
+                return '1st'
+            } else if (year == 2) {
+                return '2nd'
+            } else if (year == 3) {
+                return '3rd'
+            }
+            return year + 'th'
+        }
+
+        // Downloads
+        let dontLog = () => { }
+        for (const course in courses) {
+            for (const year in courses[course]) {
+                logToRenderer(`Downloading ${courses[course][year].length} student grades from ${course} ${stringYear(year)} year`)
+                for (let i = 0; i < courses[course][year].length; ++i) {
+                    let student = courses[course][year][i]
+                    let filePath = ''
+                    try {
+                        filePath = await getGrades([USERNAME, PASSWORD, student.code, SEM, URL, TMP_DIR], dontLog)
+                        // logToRenderer(`${i + 1}. Student ${student.code} downloaded.`)
+
+                        const gradeWorkSheet = await toWorkSheet(filePath)
+                        for (let rowNumber = 1; rowNumber <= gradeWorkSheet.rowCount; rowNumber++) {
+                            const row = gradeWorkSheet.getRow(rowNumber)
+                            if (rowNumber >= 9) {
+                                let code = (new String(row.getCell(1).text)).trim()
+                                let name = (new String(row.getCell(2).text)).trim()
+                                let grade1 = (new String(row.getCell(7).text)).trim()
+                                let grade2 = (new String(row.getCell(8).text)).trim()
+                                let units = (new String(row.getCell(9).text)).trim()
+                                let remarks = (new String(row.getCell(10).text)).trim()
+
+                                courses[course][year][i].subjects.push({
+                                    code: code,
+                                    name: name,
+                                    grade1: grade1,
+                                    grade2: grade2,
+                                    units: units,
+                                    remarks: remarks,
+                                })
+                            }
+                        }
+
+                    } catch (err) {
+                        console.error(err)
+                        logToRenderer(`${i + 1}. Error downloading ${student.code}.`)
+
+                    }
+
                 }
             }
         }
 
-        // Generate output
+        // Generate output file based on a template
+        const FILE_TEMPLATE = path.join(APP_DIR, `templates`, `tpl-promotional-list.xlsx`)
         const workbookOut = new ExcelJS.Workbook();
-        await workbookOut.xlsx.readFile(TEMPLATE_FILE)
+        await workbookOut.xlsx.readFile(FILE_TEMPLATE)
         const worksheetOut = workbookOut.getWorksheet('Sheet1')
 
-        let yearLevel = '1st Year'
-        if (YEAR == 2) {
-            yearLevel = '2nd Year'
-        } else if (YEAR == 3) {
-            yearLevel = '3rd Year'
-        } else if (YEAR == 4) {
-            yearLevel = '4th Year'
-        }
-        let activeRowNumber = 13
-        worksheetOut.getRow(activeRowNumber).getCell(1).value = yearLevel
-        worksheetOut.getRow(activeRowNumber).getCell(1).fill = {
+        const OFFSET = 11
+        const headerFontStyles = { name: 'Tahoma', bold: true }
+        const yellowFill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'ffff00' }
+            fgColor: { argb: `FFFFFF00` }
         }
-        worksheetOut.mergeCells(`A${activeRowNumber}:J${activeRowNumber}`);
 
-        // Loop on grade files
-        for (let index = 0; index < gradeFiles.length; index++) {
-            const rowCount = index + 1
-            const filePath = gradeFiles[index]
-            if (filePath) {
-                // console.log(`${rowCount} to ${filePath}`)
-                const worksheetSrc = await toWorkSheet(filePath)
-                // console.log(gradeFiles)
+        for (const course in courses) {
 
+            let copySheet = copyWorkSheet(workbookOut, 'Sheet1', course)
+            let currentRow = OFFSET
 
-                activeRowNumber++
-                worksheetOut.getRow(activeRowNumber).getCell(1).value = gradeStudents[index].rowNumber
-                worksheetOut.getRow(activeRowNumber).getCell(2).value = gradeStudents[index].id
-                worksheetOut.getRow(activeRowNumber).getCell(3).value = gradeStudents[index].lastName
-                worksheetOut.getRow(activeRowNumber).getCell(4).value = gradeStudents[index].firstName
-                worksheetOut.getRow(activeRowNumber).getCell(5).value = gradeStudents[index].middleName
-                worksheetOut.getRow(activeRowNumber).getCell(6).value = gradeStudents[index].gender
+            for (const year in courses[course]) {
 
-                let startRow = activeRowNumber
-                let totalUnits = 0
-                for (let rowNumber = 1; rowNumber <= worksheetSrc.rowCount; rowNumber++) {
+                currentRow++
+                copySheet.getRow(currentRow).font = { ...copySheet.getRow(currentRow).font, ...headerFontStyles }
+                copySheet.getRow(currentRow).getCell(1).value = 'No.'
+                copySheet.getRow(currentRow).getCell(2).value = 'ID No.'
+                copySheet.getRow(currentRow).getCell(3).value = 'Surname'
+                copySheet.getRow(currentRow).getCell(4).value = 'First Name'
+                copySheet.getRow(currentRow).getCell(5).value = 'M. Name'
+                copySheet.getRow(currentRow).getCell(6).value = 'Sex'
+                copySheet.getRow(currentRow).getCell(7).value = 'Address'
+                copySheet.getRow(currentRow).getCell(8).value = 'Code'
+                copySheet.getRow(currentRow).getCell(9).value = 'Subjects'
+                copySheet.getRow(currentRow).getCell(10).value = 'Grades'
+                copySheet.getRow(currentRow).getCell(11).value = 'Units'
+                for (let x = 1; x <= 11; x++) {
+                    copySheet.getRow(currentRow).getCell(x).fill = { ...copySheet.getRow(currentRow).fill, ...yellowFill }
+                }
+                currentRow++
 
-                    const row = worksheetSrc.getRow(rowNumber)
-                    if (rowNumber >= 9) {
-                        let CODE = (new String(row.getCell(1).text)).trim()
-                        let SUBJECT = (new String(row.getCell(2).text)).trim()
-                        let GRADE1 = (new String(row.getCell(7).text)).trim()
-                        let GRADE2 = (new String(row.getCell(8).text)).trim()
-                        let UNIT = parseFloat((new String(row.getCell(9).text)).trim())
-                        totalUnits += UNIT
-                        let grade = (GRADE2) ? GRADE2 : GRADE1
-                        if (GRADE2 === 'P') grade = GRADE1
+                copySheet.mergeCells(`A${currentRow}:B${currentRow}`)
+                copySheet.getRow(currentRow).getCell(1).value = `${stringYear(year)} Year`
+                copySheet.getRow(currentRow).font = { ...copySheet.getRow(currentRow).font, ...headerFontStyles }
+                copySheet.getRow(currentRow).getCell(1).alignment.horizontal = 'left'
+                copySheet.getRow(currentRow).getCell(1).fill = yellowFill
+                currentRow++
+
+                courses[course][year].forEach((student, i) => {
+
+                    copySheet.getRow(currentRow).getCell(1).font.bold = false
+                    copySheet.getRow(currentRow).getCell(1).value = i + 1
+                    copySheet.getRow(currentRow).getCell(2).value = student.code
+                    copySheet.getRow(currentRow).getCell(3).value = student.lastName
+                    copySheet.getRow(currentRow).getCell(4).value = student.firstName
+                    copySheet.getRow(currentRow).getCell(5).value = student.middleName
+                    copySheet.getRow(currentRow).getCell(6).value = student.gender
+                    copySheet.getRow(currentRow).getCell(7).value = student.address
+
+                    // Loop grades
+                    let totalUnits = 0
+                    let startRow = currentRow
+                    student.subjects.forEach((subject, i) => {
+                        copySheet.getRow(currentRow).getCell(8).value = subject.code
+                        copySheet.getRow(currentRow).getCell(9).value = subject.name
+
+                        let grade = subject.grade2
+                        if (grade === 'P') grade = subject.grade1
                         if (!grade) {
                             grade = 'INC'
                         }
                         if (!isNaN(grade)) {
                             grade = parseFloat(grade)
                         }
-                        worksheetOut.getRow(activeRowNumber).getCell(7).value = CODE
-                        worksheetOut.getRow(activeRowNumber).getCell(8).value = SUBJECT
-                        worksheetOut.getRow(activeRowNumber).getCell(9).value = grade
-                        worksheetOut.getRow(activeRowNumber).getCell(10).value = UNIT
-                        activeRowNumber++
-                    }
-                }
-                let endRow = activeRowNumber - 1
 
-                worksheetOut.getRow(activeRowNumber).getCell(8).value = `TOTAL UNITS`
-                worksheetOut.getRow(activeRowNumber).getCell(10).value = {
-                    formula: `=SUM(J${startRow}:J${endRow})`,
-                    result: totalUnits
-                }
-                activeRowNumber++
+                        copySheet.getRow(currentRow).getCell(10).value = grade
+                        copySheet.getRow(currentRow).getCell(11).value = subject.units
+
+                        totalUnits += parseFloat(subject.units)
+                        currentRow++
+                    })
+                    let endRow = currentRow - 1
+                    copySheet.getRow(currentRow).getCell(9).value = `Total Units`
+                    copySheet.getRow(currentRow).getCell(11).value = {
+                        formula: `=SUM(J${startRow}:J${endRow})`,
+                        result: totalUnits
+                    }
+                    currentRow++
+                    currentRow++
+                })
             }
         }
+        workbookOut.removeWorksheet(worksheetOut.id)
 
-        //TODO: 1-4th year
-        const PROMO_LIST_FILE = path.join(TARGET_DIR, `promo-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`)
+        const PROMO_LIST_FILE = path.join(TARGET_DIR, `Promotional-List-${COLLEGE}-${SEM}.xlsx`)
         await workbookOut.xlsx.writeFile(PROMO_LIST_FILE);
-
-        logToRenderer(`Done. See ${PROMO_LIST_FILE}`)
         logToRenderer(`Ended ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
+        logToRenderer(`Done. See ${PROMO_LIST_FILE}`)
+
+        return workbookOut
     } catch (error) {
         console.error(error)
         throw error

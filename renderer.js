@@ -34,6 +34,8 @@ let vApp = new Vue({
             `21-2`,
             `22-1`,
             `22-2`,
+            `23-1`,
+            `23-2`,
         ],
         courses: [
             'BSA',
@@ -53,10 +55,10 @@ let vApp = new Vue({
         url: '',
         username: '',
         password: '',
-        college: 'CAGS',
+        college: '',
         semester: '22-1',
-        course: 'BSF',
-        year: '1',
+        course: '',
+        year: '',
         studentId: '',
         group1: {
             logs: [],

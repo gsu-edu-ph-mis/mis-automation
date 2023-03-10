@@ -70,7 +70,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="form-group row">
+                                    <!-- <div class="form-group row">
                                         <label for="course" class="col-sm-2 col-form-label">Course</label>
                                         <div class="col-sm-10">
                                             <input v-model="course" type="search" class="form-control" id="course" required>
@@ -87,7 +87,7 @@
                                                 <option value="4">4</option>
                                             </select>
                                         </div>
-                                    </div>
+                                    </div> -->
                                     <div class="form-group row">
                                         <div class="col-sm-2 col-form-label"></div>
                                         <div class="col-sm-10 text-right">
@@ -101,9 +101,7 @@
                                         <button v-bind:disabled="pending" v-on:click="group1.logs=[]" type="button" class="btn btn-sm btn-light">Clear</button>
                                     </div>
                                     <div class="border p-3">
-                                        <ul>
-                                            <li v-for="log in group1.logs">${log}</li>
-                                        </ul>
+                                        <div v-for="log in group1.logs" v-bind:class="logClass(log)">${log}</div>
                                     </div>
                                 </div>
                             </template>
@@ -152,13 +150,13 @@
                                         </div>
                                     </div>
 
-                                    <div class="form-group row">
+                                    <!-- <div class="form-group row">
                                         <label for="course" class="col-sm-2 col-form-label">Course</label>
                                         <div class="col-sm-10">
                                             <input v-model="course" type="search" class="form-control" id="course" required>
                                         </div>
-                                    </div>
-                                    <div class="form-group row">
+                                    </div> -->
+                                    <!-- <div class="form-group row">
                                         <label for="year" class="col-sm-2 col-form-label">Year</label>
                                         <div class="col-sm-10">
                                             <select v-model="year" class="form-control" id="year">
@@ -169,7 +167,7 @@
                                                 <option value="4">4</option>
                                             </select>
                                         </div>
-                                    </div>
+                                    </div> -->
 
                                     <div class="form-group row">
                                         <div class="col-sm-2 col-form-label"></div>
@@ -184,9 +182,7 @@
                                         <button v-bind:disabled="pending" v-on:click="group2.logs=[]" type="button" class="btn btn-sm btn-light">Clear</button>
                                     </div>
                                     <div class="border p-3">
-                                        <ul>
-                                            <li v-for="log in group2.logs">${log}</li>
-                                        </ul>
+                                        <div v-for="log in group2.logs">${log}</div>
                                     </div>
                                 </div>
                             </template>

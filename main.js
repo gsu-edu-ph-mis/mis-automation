@@ -26,6 +26,11 @@ if (!fs.existsSync(TARGET_DIR)) {
     fs.mkdirSync(TARGET_DIR, { recursive: true })
 }
 
+global.TMP_DIR = path.join(APP_DIR, `tmp`)
+if (!fs.existsSync(TMP_DIR)) {
+    fs.mkdirSync(TMP_DIR, { recursive: true })
+}
+
 const createWindow = () => {
     // Create the browser window.
     const mainWindow = new BrowserWindow({
@@ -72,7 +77,7 @@ const createWindow = () => {
     mainWindow.loadFile('index.html')
 
     // Open the DevTools.
-    mainWindow.webContents.openDevTools()
+    // mainWindow.webContents.openDevTools()
 
     return mainWindow
 }
@@ -97,7 +102,7 @@ app.whenReady().then(() => {
             if (action === 'promotional-list') {
                 await generatePromotionalList([...params, TARGET_DIR], logToRenderer(`group1`))
             } else if (action === 'enrollment-list') {
-                await getEnrollmentList([...params, TARGET_DIR], logToRenderer(`group2`))
+                await getEnrollmentList([...params], logToRenderer(`group2`))
             } else if (action === 'term-grades') {
                 await getGrades([...params, TARGET_DIR], logToRenderer(`group3`))
             } else if (action === 'show-file') {

@@ -1,6 +1,21 @@
+/**
+ * Get grades
+ * 
+ * Get grade of student on a given semester.
+ * 
+ * @returns String file path to file
+ * @throws An error
+ */
+
+//// Core modules
 const fs = require('fs')
 const path = require('path')
+
+//// External modules
 const { chromium } = require('playwright')  // Or 'chromium' or 'webkit'.
+
+//// Modules
+
 
 // Return filePath or throw on error
 module.exports = async (args, logToRenderer) => {
@@ -41,23 +56,34 @@ module.exports = async (args, logToRenderer) => {
         // await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
         
         await page.locator(`:text("Student") + div`).locator('> input').fill(ID)
+        // await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
+
         await page.locator(`:text("Period") + div`).locator('> input').fill(SEM)
+        // await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
+
         await page.locator(`:text("Level") + div`).click()
+        // await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
         await page.locator("text='College'").click()
-        await new Promise(resolve => setTimeout(resolve, 100)) // Rate limit 
+        // await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
 
         await page.locator("text='Refresh'").click()
 
         const downloadPromise = page.waitForEvent('download')
-        await new Promise(resolve => setTimeout(resolve, 1000)) // Rate limit 
+        await new Promise(resolve => setTimeout(resolve, 2000)) // Rate limit 
         await page.locator("text='XLS'").click()
         const download = await downloadPromise;
         await download.saveAs(filePath)
+
+        // Close the tab (optional can be commented out)
+        // await page.locator(`body > div:nth-child(3) > div:nth-child(1) > div:nth-child(3) > div:nth-child(1) > div > div > div > div:nth-child(2) > div`).click()
+        // await new Promise(resolve => setTimeout(resolve, 10000)) // Rate limit 
+
         await browser.close();
         logToRenderer(`Grades downloaded to ${filePath}`)
         return filePath
 
     } catch (error) {
+        console.error(error)
         if (browser) {
             await browser.close();
         }

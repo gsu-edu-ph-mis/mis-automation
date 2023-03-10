@@ -1,6 +1,6 @@
 # MIS Automation
 
-Automation software. Automates the generation of promotional list, enrollment list and term grades.
+Automation software. A GUI app, automates the generation of promotional list, enrollment list and term grades.
 
 ***
 
@@ -9,7 +9,9 @@ Automation software. Automates the generation of promotional list, enrollment li
 ![automatic](images/otomatic.gif)
 
 ***
-
+## Screenshots
+![automatic](images/screenshot.jpg)
+Sample screenshot
 
 ## Development
 

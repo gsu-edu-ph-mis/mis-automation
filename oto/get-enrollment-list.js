@@ -1,12 +1,22 @@
+/**
+ * Get enrollment list
+ * 
+ * Get enrollment list for entire course from year 1 - 4.
+ * 
+ * @returns File path to FILE_OUT
+ * @throws An error
+ */
+
+//// Core modules
 const fs = require('fs')
 const path = require('path')
-const ExcelJS = require('exceljs')
-const { chromium } = require('playwright')  // Or 'chromium' or 'webkit'.
-const toWorkSheet = async (file, sheetName = 'Sheet1') => {
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(file)
-    return workbook.getWorksheet(sheetName)
-}
+
+//// External modules
+
+//// Modules
+const download = require('./download-enrollment-list')
+const format = require('./format-enrollment-list')
+
 
 // Return ExcelJS worksheet or throw an error
 module.exports = async (args, logToRenderer) => {
@@ -19,68 +29,19 @@ module.exports = async (args, logToRenderer) => {
         const COURSE = args[4]
         const YEAR = args[5]
         const URL = args[6]
-        const DIR = args[7]
 
-        const MASTER_LIST = path.join(DIR, `enrollment-list-${COLLEGE}-${SEM}-${COURSE}-${YEAR}.xlsx`)
-
-        if (fs.existsSync(MASTER_LIST)) {
-            logToRenderer(`Enrollment list found in ${MASTER_LIST}`)
-
-            const workSheet = await toWorkSheet(MASTER_LIST)
-            return workSheet
+        const FILE_IN = path.join(TMP_DIR, `_el-${COLLEGE}-${SEM}.xlsx`)
+        const FILE_TEMPLATE = path.join(APP_DIR, `templates`, `tpl-enrollment-list.xlsx`)
+        const FILE_OUT = path.join(APP_DIR, `downloads`, `Enrollment-List-${COLLEGE}-${SEM}.xlsx`)
+        if (!fs.existsSync(FILE_IN)) {
+            logToRenderer(`Downloading enrollment list from network...`)
+            await download(URL, USERNAME, PASSWORD, FILE_IN, COLLEGE, SEM, logToRenderer)
         }
-        logToRenderer(`Downloading enrollment list from network...`)
+        
+        await format(FILE_TEMPLATE, FILE_IN, FILE_OUT, logToRenderer)
+        logToRenderer(`Saved to ${FILE_OUT}`)
 
-        browser = await chromium.launch({
-            // headless: false,
-            // devtools: true,
-        })
-        const page = await browser.newPage()
-        await page.goto(URL, {
-            waitUntil: 'networkidle',
-        })
-
-        await page.locator("text='Administrator'").click()
-        await page.locator(`input[type="password"]`).nth(0).type(USERNAME)
-        await page.locator(`input[type="password"]`).nth(1).type(PASSWORD)
-        await page.locator("text='Login'").click()
-
-        await page.locator("text='Reports'").click()
-        await page.locator("text='Registrar'").click()
-        await page.locator("text='Enrollment List'").click()
-        await page.locator(`body > div:nth-child(3) > div:nth-child(1) > div:nth-child(3) > div.qx-main > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > div:nth-child(6) > input`).type(COLLEGE)
-        await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
-
-        await page.locator(`:text("Level") + div`).click()
-        await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
-
-        await page.locator("text='College'").click()
-        await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
-
-        await page.locator(`body > div:nth-child(3) > div:nth-child(1) > div:nth-child(3) > div.qx-main > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > input`).fill(SEM)
-        await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
-
-        await page.locator(`body > div:nth-child(3) > div:nth-child(1) > div:nth-child(3) > div.qx-main > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > div:nth-child(8) > input`).fill(COURSE)
-        await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
-
-        await page.locator(`body > div:nth-child(3) > div:nth-child(1) > div:nth-child(3) > div.qx-main > div > div > div > div > div > div:nth-child(1) > div:nth-child(1) > input`).fill(YEAR)
-        await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
-
-        await page.locator("text='Refresh'").nth(1).click()
-        await new Promise(resolve => setTimeout(resolve, 500)) // Rate limit 
-
-        const downloadPromise = page.waitForEvent('download')
-        await new Promise(resolve => setTimeout(resolve, 2000)) // Rate limit 
-        await page.locator("text='XLS'").click()
-        const download = await downloadPromise;
-        await download.saveAs(MASTER_LIST)
-        await browser.close();
-
-        logToRenderer(`Enrollment list downloaded to ${MASTER_LIST}`)
-
-        const workSheet = await toWorkSheet(MASTER_LIST)
-        return workSheet
-
+        return [FILE_IN, FILE_TEMPLATE, FILE_OUT]
     } catch (error) {
         if (browser) {
             await browser.close();
