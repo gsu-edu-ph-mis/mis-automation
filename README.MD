@@ -4,7 +4,7 @@ Automation software. A GUI app, automates the generation of promotional list, en
 
 ***
 
-[Sandara Park approves](https://raw.githubusercontent.com/gsu-edu-ph-mis/mis-automation/master/images/otomatic.mp4)
+[Automatic!](https://raw.githubusercontent.com/gsu-edu-ph-mis/mis-automation/master/images/otomatic.mp4)
 
 ![automatic](images/otomatic.gif)
 

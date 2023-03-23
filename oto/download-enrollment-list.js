@@ -15,7 +15,7 @@ const { chromium } = require('playwright')  // Or 'chromium' or 'webkit'.
 //// Modules
 
 
-module.exports = async (URL, USERNAME, PASSWORD, FILE_OUT, COLLEGE, SEM, logToRenderer) => {
+module.exports = async (URL, USERNAME, PASSWORD, FILE_OUT, COLLEGE, SEM) => {
     let browser = null
     try {
         browser = await chromium.launch({

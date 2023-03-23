@@ -20,7 +20,6 @@ const format = require('./format-enrollment-list')
 
 // Return ExcelJS worksheet or throw an error
 module.exports = async (args, logToRenderer) => {
-    let browser = null
     try {
         const USERNAME = args[0]
         const PASSWORD = args[1]
@@ -34,18 +33,16 @@ module.exports = async (args, logToRenderer) => {
         const FILE_TEMPLATE = path.join(APP_DIR, `templates`, `tpl-enrollment-list.xlsx`)
         const FILE_OUT = path.join(APP_DIR, `downloads`, `Enrollment-List-${COLLEGE}-${SEM}.xlsx`)
         if (!fs.existsSync(FILE_IN)) {
-            logToRenderer(`Downloading enrollment list from network...`)
-            await download(URL, USERNAME, PASSWORD, FILE_IN, COLLEGE, SEM, logToRenderer)
+            logToRenderer(`Downloading enrollment list from network...`, [3, 0])
+            await download(URL, USERNAME, PASSWORD, FILE_IN, COLLEGE, SEM)
         }
-        
+
         await format(FILE_TEMPLATE, FILE_IN, FILE_OUT, logToRenderer)
-        logToRenderer(`Saved to ${FILE_OUT}`)
+        logToRenderer(`Saved to ${FILE_OUT}`, [3, 3])
 
         return [FILE_IN, FILE_TEMPLATE, FILE_OUT]
     } catch (error) {
-        if (browser) {
-            await browser.close();
-        }
+        console.error(error)
         throw error
     }
 }

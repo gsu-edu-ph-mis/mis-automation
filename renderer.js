@@ -4,6 +4,7 @@ let vApp = new Vue({
     mixins: [],
     data: {
         pending: false,
+        expanded: false,
         page: 1,
         logs: [],
         tabs: [
@@ -56,7 +57,7 @@ let vApp = new Vue({
         username: '',
         password: '',
         college: '',
-        semester: '22-1',
+        semester: '',
         course: '',
         year: '',
         studentId: '',
@@ -68,12 +69,19 @@ let vApp = new Vue({
         },
         group3: {
             logs: [],
-        }
-    },
-    computed: {
-
+        },
+        currentDoing: '',
+        progressBits: []
     },
     methods: {
+        logClass: function(log){
+            if(new RegExp(/error/i).test(log)){
+                return 'text-danger'
+            }
+        },
+        getWidth: function(){
+            return 100 / this.progressBits.length
+        },
         isActiveTab: function (page) {
             return (this.page === page) ? `active` : ``
         },
@@ -89,15 +97,15 @@ let vApp = new Vue({
                 me.year,
                 me.url,
             ]
-
+            me.logs = []
             let result = await window.electronAPI.sendToMain('promotional-list', params)
 
             if (result != 'Ok') {
                 alert('Error. Something went wrong.')
             }
             console.log(result)
-            await new Promise(resolve => setTimeout(resolve, 100)) // Rate limit 
             me.pending = false
+            alert(vApp.currentDoing)
             document.getElementById("bottom").scrollIntoView({
                 behavior: 'smooth'
             });
@@ -114,7 +122,7 @@ let vApp = new Vue({
                 me.year,
                 me.url,
             ]
-
+            me.logs = []
             let result = await window.electronAPI.sendToMain('enrollment-list', params)
 
             if (result != 'Ok') {
@@ -123,6 +131,7 @@ let vApp = new Vue({
             console.log(result)
             await new Promise(resolve => setTimeout(resolve, 100)) // Rate limit 
             me.pending = false
+            alert(vApp.currentDoing)
             document.getElementById("bottom").scrollIntoView({
                 behavior: 'smooth'
             });
@@ -137,7 +146,7 @@ let vApp = new Vue({
                 me.semester,
                 me.url,
             ]
-
+            me.logs = []
             let result = await window.electronAPI.sendToMain('term-grades', params)
 
             if (result != 'Ok') {
@@ -146,25 +155,20 @@ let vApp = new Vue({
             console.log(result)
             await new Promise(resolve => setTimeout(resolve, 100)) // Rate limit 
             me.pending = false
+            alert(vApp.currentDoing)
             document.getElementById("bottom").scrollIntoView({
                 behavior: 'smooth'
             });
         },
         showFile: async (path) => {
             let result = await window.electronAPI.sendToMain('show-file', path)
-
-           
         }
     }
 });
 
 // This is assigned a callback function from preload.js
 window.electronAPI.onDataFromMain((_event, value, group) => {
-    if (group === 'group1') {
-        vApp.group1.logs.push(value)
-    } else if (group === 'group2') {
-        vApp.group2.logs.push(value)
-    } else if (group === 'group3') {
-        vApp.group3.logs.push(value)
-    }
+    vApp.currentDoing = value.currentDoing
+    vApp.progressBits = value.progressBits
+    vApp.logs.push(value.currentDoing)
 })

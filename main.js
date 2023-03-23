@@ -37,6 +37,7 @@ const createWindow = () => {
         width: 1024,
         height: 700,
         minWidth: 500,
+        minHeight: 200,
         icon: `${__dirname}/images/icon.png`,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js')
@@ -77,7 +78,7 @@ const createWindow = () => {
     mainWindow.loadFile('index.html')
 
     // Open the DevTools.
-    // mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools()
 
     return mainWindow
 }
@@ -90,21 +91,24 @@ app.whenReady().then(() => {
 
 
     ipcMain.handle('mis:onDataFromRenderer', async (_event, action, params) => {
-        const logToRenderer = (logGroup) => {
-            return (log) => {
+        const logToRenderer = (logGroup = '') => {
+            return (log, progressBits = []) => {
                 // Log here
                 console.log(log)
                 // Log to renderer
-                if (rootBrowserWindow) rootBrowserWindow.webContents.send('mis:onDataFromMain', log, logGroup)
+                if (rootBrowserWindow) rootBrowserWindow.webContents.send('mis:onDataFromMain', {
+                    currentDoing: log,
+                    progressBits: progressBits
+                }, logGroup)
             }
         }
         try {
             if (action === 'promotional-list') {
-                await generatePromotionalList([...params, TARGET_DIR], logToRenderer(`group1`))
+                await generatePromotionalList([...params, TARGET_DIR], logToRenderer())
             } else if (action === 'enrollment-list') {
-                await getEnrollmentList([...params], logToRenderer(`group2`))
+                await getEnrollmentList([...params], logToRenderer())
             } else if (action === 'term-grades') {
-                await getGrades([...params, TARGET_DIR], logToRenderer(`group3`))
+                await getGrades([...params, TARGET_DIR], logToRenderer())
             } else if (action === 'show-file') {
                 shell.showItemInFolder(params)
             }

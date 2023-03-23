@@ -15,6 +15,7 @@ const getEnrollmentList = require('./get-enrollment-list')
 const downloadEnrollmentList = require('./download-enrollment-list')
 const toWorkSheet = require('./to-worksheet')
 const copyWorkSheet = require('./copy-worksheet')
+const ordinal = require('./ordinal')
 
 
 module.exports = async (args, logToRenderer) => {
@@ -42,10 +43,49 @@ module.exports = async (args, logToRenderer) => {
             logToRenderer(`Downloading enrollment list from network...`)
             await downloadEnrollmentList(URL, USERNAME, PASSWORD, ENROLLMENT_LIST, COLLEGE, SEM, logToRenderer)
         }
-        const workSheet = await toWorkSheet(ENROLLMENT_LIST, 'Sheet1') // Convert path to xlsx into exceljs worksheet
+        const workSheet = await toWorkSheet(ENROLLMENT_LIST, 'Sheet1') // Convert path into exceljs worksheet
+
+        // DOWNLOAD
+        const DONT_LOG = () => { }
+        const START_ROW = 8 // Start of row data
+        let downloadables = [] // student code, null = done, 1 = processing
+        for (let rowNumber = 1; rowNumber <= workSheet.rowCount; rowNumber++) {
+            const row = workSheet.getRow(rowNumber)
+            if (rowNumber >= START_ROW) {
+                let CODE = (new String(row.getCell(2).text)).trim()
+                downloadables.push(CODE)
+            }
+        }
+        let progressBits = [...Array(downloadables.length)].map(_ => 0) // 0 none, 1 failed, 2 processing, 3 success
+        const dl = async (progressBits, downloadables) => {
+            // Find 1
+            const index = progressBits.findIndex(e => e <= 1)
+            if (index === -1) return false
+
+            progressBits[index] = 2 // flag as processing
+
+            const studentCode = downloadables[index]
+            try {
+                logToRenderer(`Downloading student ${studentCode}...`, progressBits)
+                await getGrades([USERNAME, PASSWORD, studentCode, SEM, URL, TMP_DIR], DONT_LOG)
+                progressBits[index] = 3 // flag as success
+                logToRenderer(`Student ${studentCode} downloaded.`, progressBits)
+
+            } catch (err) {
+                progressBits[index] = 1 // flag as failed
+                logToRenderer(`Error downloading ${studentCode}`, progressBits)
+            }
+            // Recursive call
+            await dl(progressBits, downloadables)
+        }
+        let promises = []
+        promises.push(dl(progressBits, downloadables))
+        promises.push(dl(progressBits, downloadables))
+        promises.push(dl(progressBits, downloadables))
+        await Promise.allSettled(promises)
+
 
         // Group rows into courses
-        const START_ROW = 8 // Start of row data
         let rowCount = 0
         let courses = {}
         for (let rowNumber = 1; rowNumber <= workSheet.rowCount; rowNumber++) {
@@ -99,6 +139,30 @@ module.exports = async (args, logToRenderer) => {
                     }
                 }
 
+                let subjects = []
+                const filePath = path.join(TMP_DIR, `term-grades-${CODE}-${SEM}.xlsx`)
+                const gradeWorkSheet = await toWorkSheet(filePath)
+                for (let rowNumber = 1; rowNumber <= gradeWorkSheet.rowCount; rowNumber++) {
+                    const row = gradeWorkSheet.getRow(rowNumber)
+                    if (rowNumber >= 9) {
+                        let code = (new String(row.getCell(1).text)).trim()
+                        let name = (new String(row.getCell(2).text)).trim()
+                        let grade1 = (new String(row.getCell(7).text)).trim()
+                        let grade2 = (new String(row.getCell(8).text)).trim()
+                        let units = (new String(row.getCell(9).text)).trim()
+                        let remarks = (new String(row.getCell(10).text)).trim()
+
+                        subjects.push({
+                            code: code,
+                            name: name,
+                            grade1: grade1,
+                            grade2: grade2,
+                            units: units,
+                            remarks: remarks,
+                        })
+                    }
+                }
+
                 courses[COURSE][YEAR].push({
                     number: NUMBER,
                     code: CODE,
@@ -109,63 +173,9 @@ module.exports = async (args, logToRenderer) => {
                     course: COURSE,
                     year: YEAR,
                     address: ADDRESS,
-                    subjects: [],
+                    subjects: subjects,
                 })
-            }
-        }
 
-        const stringYear = (year) => {
-            if (year == 1) {
-                return '1st'
-            } else if (year == 2) {
-                return '2nd'
-            } else if (year == 3) {
-                return '3rd'
-            }
-            return year + 'th'
-        }
-
-        // Downloads
-        let dontLog = () => { }
-        for (const course in courses) {
-            for (const year in courses[course]) {
-                logToRenderer(`Downloading ${courses[course][year].length} student grades from ${course} ${stringYear(year)} year`)
-                for (let i = 0; i < courses[course][year].length; ++i) {
-                    let student = courses[course][year][i]
-                    let filePath = ''
-                    try {
-                        filePath = await getGrades([USERNAME, PASSWORD, student.code, SEM, URL, TMP_DIR], dontLog)
-                        // logToRenderer(`${i + 1}. Student ${student.code} downloaded.`)
-
-                        const gradeWorkSheet = await toWorkSheet(filePath)
-                        for (let rowNumber = 1; rowNumber <= gradeWorkSheet.rowCount; rowNumber++) {
-                            const row = gradeWorkSheet.getRow(rowNumber)
-                            if (rowNumber >= 9) {
-                                let code = (new String(row.getCell(1).text)).trim()
-                                let name = (new String(row.getCell(2).text)).trim()
-                                let grade1 = (new String(row.getCell(7).text)).trim()
-                                let grade2 = (new String(row.getCell(8).text)).trim()
-                                let units = (new String(row.getCell(9).text)).trim()
-                                let remarks = (new String(row.getCell(10).text)).trim()
-
-                                courses[course][year][i].subjects.push({
-                                    code: code,
-                                    name: name,
-                                    grade1: grade1,
-                                    grade2: grade2,
-                                    units: units,
-                                    remarks: remarks,
-                                })
-                            }
-                        }
-
-                    } catch (err) {
-                        console.error(err)
-                        logToRenderer(`${i + 1}. Error downloading ${student.code}.`)
-
-                    }
-
-                }
             }
         }
 
@@ -209,7 +219,7 @@ module.exports = async (args, logToRenderer) => {
                 currentRow++
 
                 copySheet.mergeCells(`A${currentRow}:B${currentRow}`)
-                copySheet.getRow(currentRow).getCell(1).value = `${stringYear(year)} Year`
+                copySheet.getRow(currentRow).getCell(1).value = `${ordinal(year)} Year`
                 copySheet.getRow(currentRow).font = { ...copySheet.getRow(currentRow).font, ...headerFontStyles }
                 copySheet.getRow(currentRow).getCell(1).alignment.horizontal = 'left'
                 copySheet.getRow(currentRow).getCell(1).fill = yellowFill
@@ -263,8 +273,8 @@ module.exports = async (args, logToRenderer) => {
 
         const PROMO_LIST_FILE = path.join(TARGET_DIR, `Promotional-List-${COLLEGE}-${SEM}.xlsx`)
         await workbookOut.xlsx.writeFile(PROMO_LIST_FILE);
-        logToRenderer(`Ended ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
-        logToRenderer(`Done. See ${PROMO_LIST_FILE}`)
+        // logToRenderer(`Ended ${(new Date()).toLocaleTimeString('fil-PH', timeFmt)}`)
+        logToRenderer(`Done. See ${PROMO_LIST_FILE}`, progressBits)
 
         return workbookOut
     } catch (error) {

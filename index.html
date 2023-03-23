@@ -17,8 +17,28 @@
         <div class="row">
             <div class="col-md-12">
                 <div id="vApp" v-cloak>
-                    <div class="mb-4 position-relative">
-
+                    <!--  -->
+                    <div v-if="pending" class="status-area">
+                        <h1 class="h6">Processing <img src="images/ajax-loader.gif" alt=""></h1>
+                        <div class="progress-bar-custom mb-2">
+                            <div v-for="(bit, i) in progressBits" v-bind:title="`File #${i+1}`" v-bind:data-f="bit" v-bind:style="`width: ${getWidth()}%`"></div>
+                        </div>
+                        <div class="">
+                            <button v-on:click="expanded=false" v-if="expanded" class="btn btn-sm btn-light" type="button">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" /></svg>
+                            </button>
+                            <button v-on:click="expanded=true" v-if="!expanded" class="btn btn-sm btn-light" type="button">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" /></svg>
+                            </button>
+                            <span>Status: <em>${currentDoing}</em></span>
+                            <div v-if="expanded" class="logs p-3">
+                                <div v-for="log in logs" v-bind:class="logClass(log)">${log}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--  -->
+                    <div v-else class="mb-4 position-relative">
+                        
                         <ul class="nav nav-tabs">
                             <li v-for="tab in tabs" class="nav-item">
                                 <a v-on:click="page = tab.value" v-bind:class="`nav-link ` + isActiveTab(tab.value)"
@@ -27,6 +47,7 @@
                         </ul>
                         <div class="tab-content">
                             <!--  -->
+                            
                             <template v-if="page==1">
                                 <form class="p-3" v-bind:data-pending="pending" action="/" method="post"
                                     v-on:submit.prevent="onFormPromotionalListSubmit">
@@ -98,10 +119,10 @@
                                 <div class="p-3">
                                     <div class="d-flex justify-content-between">
                                         <h6 class="h6">Status</h6>
-                                        <button v-bind:disabled="pending" v-on:click="group1.logs=[]" type="button" class="btn btn-sm btn-light">Clear</button>
+                                        <button v-bind:disabled="pending" v-on:click="logs=[]" type="button" class="btn btn-sm btn-light">Clear</button>
                                     </div>
                                     <div class="border p-3">
-                                        <div v-for="log in group1.logs" v-bind:class="logClass(log)">${log}</div>
+                                        ${logs.at(-1)}
                                     </div>
                                 </div>
                             </template>
@@ -179,10 +200,10 @@
                                 <div class="p-3">
                                     <div class="d-flex justify-content-between">
                                         <h6 class="h6">Status</h6>
-                                        <button v-bind:disabled="pending" v-on:click="group2.logs=[]" type="button" class="btn btn-sm btn-light">Clear</button>
+                                        <button v-bind:disabled="pending" v-on:click="logs=[]" type="button" class="btn btn-sm btn-light">Clear</button>
                                     </div>
                                     <div class="border p-3">
-                                        <div v-for="log in group2.logs">${log}</div>
+                                        ${logs.at(-1)}
                                     </div>
                                 </div>
                             </template>
@@ -239,12 +260,10 @@
                                 <div class="p-3">
                                     <div class="d-flex justify-content-between">
                                         <h6 class="h6">Status</h6>
-                                        <button v-bind:disabled="pending" v-on:click="group3.logs=[]" type="button" class="btn btn-sm btn-light">Clear</button>
+                                        <button v-bind:disabled="pending" v-on:click="logs=[]" type="button" class="btn btn-sm btn-light">Clear</button>
                                     </div>
                                     <div class="border p-3">
-                                        <ul>
-                                            <li v-for="log in group3.logs">${log}</li>
-                                        </ul>
+                                        ${logs.at(-1)}
                                     </div>
                                 </div>
                             </template>

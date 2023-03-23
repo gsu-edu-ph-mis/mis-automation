@@ -84,3 +84,36 @@ body {
     background-color: #007bff;
     transition: width .6s ease;
 }
+
+.progress-bar-custom {
+    display: flex;
+    height: 15px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: lightgray;
+}
+
+.progress-bar-custom > div {
+    height: 100%;
+}
+
+.progress-bar-custom > div[data-f="1"],
+.progress-bar-custom > div[data-f="2"]{
+    background-color: rgb(205, 21, 21);
+}
+
+.progress-bar-custom > div[data-f="3"]{
+    background-color: #007bff;
+}
+
+.progress-bar-custom > div:hover{
+    background-color: #ffc400;
+    cursor: pointer;
+}
+
+.logs {
+    box-shadow: 1px 0 4px inset grey;
+    overflow-y: auto;
+    height: 150px;
+    resize: vertical;
+}
